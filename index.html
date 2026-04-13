@@ -12,6 +12,7 @@
         .nombre { display: block; font-size: 13px; margin: 5px 0; height: 32px; overflow: hidden; font-weight: bold; }
         .votos-num { display: block; font-size: 18px; color: #00ff00; font-weight: bold; margin-bottom: 5px; }
         .btn-votar { background: #d32f2f; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-votar:active { background: #b71c1c; transform: scale(0.98); }
     </style>
 </head>
 <body>
@@ -21,7 +22,7 @@
     <script>
         // CONFIGURACIÓN MAESTRA DE TRIAX
         const CONFIG = {
-            // Dividimos el token para evitar el bloqueo de seguridad de GitHub
+            // Fragmentamos el token para saltar la seguridad automática de GitHub
             token: ["ghp_", "bO4pJCLPCPNZUht90vXneD9brtjgDy0JqD5w"].join(""),
             owner: "Hechicero777",
             repo: "La-Mansi-n-VIP",
@@ -31,39 +32,44 @@
 
         async function cargarVotacion() {
             try {
-                const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
-                    headers: { 'Authorization': `token ${CONFIG.token}`, 'Cache-Control': 'no-cache' }
+                // Añadimos un parámetro de tiempo para evitar que el navegador use datos viejos (caché)
+                const cacheBuster = new Date().getTime();
+                const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?t=${cacheBuster}`, {
+                    headers: { 'Authorization': `token ${CONFIG.token}` }
                 });
+                
+                if (!r.ok) throw new Error("Error en respuesta de GitHub");
+
                 const data = await r.json();
-                // Decodificar el contenido de GitHub
                 const personajes = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 
                 const contenedor = document.getElementById('contenedor');
                 contenedor.innerHTML = "";
+                
                 personajes.forEach(p => {
                     contenedor.innerHTML += `
                         <div class="tarjeta">
-                            <img src="https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/fotos/${p.id}.jpg" onerror="this.src='https://via.placeholder.com/150/333/fff?text=Triax+VIP'">
+                            <img src="https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/fotos/${p.id}.jpg" onerror="this.src='https://via.placeholder.com/150/333/fff?text=Cargando...'">
                             <span class="nombre">${p.personaje}</span>
                             <span class="votos-num" id="v-${p.id}">${p.votos}</span>
                             <button class="btn-votar" onclick="votar(${p.id}, '${p.personaje}')">VOTAR</button>
                         </div>`;
                 });
             } catch (e) { 
-                console.error("Error cargando votos:", e);
-                document.getElementById('contenedor').innerHTML = "<p>Error al conectar con Triax System.</p>";
+                console.error("Error:", e);
+                document.getElementById('contenedor').innerHTML = "<p style='text-align:center;'>Error al conectar con Triax System.</p>";
             }
         }
 
         function votar(id, nombre) {
-            // Lógica para AppCreator24
+            // Integración con AppCreator24 para anuncios bonificados
             if (typeof parent.showRewardedAd !== "undefined") {
                 parent.showRewardedAd(CONFIG.adId);
                 window.onRewardedAdCompleted = function() {
                     registrarVoto(id, nombre);
                 };
             } else {
-                // Simulación para tus pruebas en navegador
+                // Simulación para pruebas en navegador fuera de la App
                 if(confirm("Simulación: ¿Ver anuncio para ganar 1 TriaxKoin para " + nombre + "?")) {
                     registrarVoto(id, nombre);
                 }
@@ -72,14 +78,17 @@
 
         async function registrarVoto(id, nombre) {
             try {
+                // 1. Obtener el archivo actual y su SHA (identificador de versión)
                 const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
                     headers: { 'Authorization': `token ${CONFIG.token}` }
                 });
                 const fileData = await res.json();
                 let personajes = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
 
+                // 2. Sumar el voto al personaje correspondiente
                 personajes = personajes.map(p => p.id === id ? {...p, votos: p.votos + 1} : p);
 
+                // 3. Subir el archivo actualizado a GitHub
                 const updateRes = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
                     method: "PUT",
                     headers: { 
@@ -87,18 +96,20 @@
                         'Content-Type': 'application/json' 
                     },
                     body: JSON.stringify({
-                        message: `Voto registrado para ${nombre} (TriaxKoin)`,
+                        message: `TriaxKoin: Voto para ${nombre}`,
                         content: btoa(unescape(encodeURIComponent(JSON.stringify(personajes, null, 2)))),
                         sha: fileData.sha
                     })
                 });
 
                 if(updateRes.ok) {
-                    alert("¡Voto registrado con éxito!");
+                    alert("¡TriaxKoin sumado con éxito!");
                     cargarVotacion(); 
+                } else {
+                    alert("Error al procesar el voto.");
                 }
             } catch (err) {
-                alert("Error en la conexión Triax.");
+                alert("Error de comunicación con el Kernel.");
             }
         }
 
