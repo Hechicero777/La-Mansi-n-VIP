@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Mansión VIP - Votación Triax</title>
+    <title>La Mansión VIP - Triax System</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #000; color: #fff; margin: 0; padding: 10px; }
         .grid-votacion { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -11,54 +11,95 @@
         .tarjeta img { width: 100%; height: 120px; object-fit: cover; border-radius: 5px; background: #333; }
         .nombre { display: block; font-size: 13px; margin: 5px 0; height: 32px; overflow: hidden; font-weight: bold; }
         .votos-num { display: block; font-size: 18px; color: #00ff00; font-weight: bold; margin-bottom: 5px; }
-        .btn-votar { background: #d32f2f; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        .btn-votar:active { background: #b71c1c; }
+        .btn-votar { background: #d32f2f; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="grid-votacion" id="contenedor">
-        </div>
+    <div class="grid-votacion" id="contenedor"></div>
 
     <script>
-        const jsonUrl = "https://raw.githubusercontent.com/Hechicero777/La-Mansi-n-VIP/main/votos.json";
-        const AD_ID = "ca-app-pub-7344656090124182/7924570169";
+        // CONFIGURACIÓN MAESTRA DE TRIAX
+        const CONFIG = {
+            token: "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",
+            owner: "Hechicero777",
+            repo: "La-Mansi-n-VIP",
+            path: "votos.json",
+            adId: "ca-app-pub-7344656090124182/7924570169"
+        };
 
-        // 1. CARGAR CUADROS DESDE EL JSON
+        // 1. CARGAR DATOS DESDE GITHUB API (Para evitar caché)
         async function cargarVotacion() {
             try {
-                const respuesta = await fetch(jsonUrl);
-                const personajes = await respuesta.json();
-                const contenedor = document.getElementById('contenedor');
-                contenedor.innerHTML = ""; 
+                const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
+                    headers: { 'Authorization': `token ${CONFIG.token}`, 'Cache-Control': 'no-cache' }
+                });
+                const data = await r.json();
+                const personajes = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 
+                const contenedor = document.getElementById('contenedor');
+                contenedor.innerHTML = "";
                 personajes.forEach(p => {
                     contenedor.innerHTML += `
                         <div class="tarjeta">
-                            <img src="https://raw.githubusercontent.com/Hechicero777/La-Mansi-n-VIP/main/fotos/${p.id}.jpg" alt="${p.personaje}">
+                            <img src="https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/fotos/${p.id}.jpg" onerror="this.src='https://via.placeholder.com/150/333/fff?text=Triax+VIP'">
                             <span class="nombre">${p.personaje}</span>
-                            <span class="votos-num" id="v-id-${p.id}">${p.votos}</span>
-                            <button class="btn-votar" onclick="iniciarVoto(${p.id}, '${p.personaje}')">VOTAR</button>
-                        </div>
-                    `;
+                            <span class="votos-num" id="v-${p.id}">${p.votos}</span>
+                            <button class="btn-votar" onclick="votar(${p.id}, '${p.personaje}')">VOTAR</button>
+                        </div>`;
                 });
-            } catch (e) { console.error("Error al cargar personajes"); }
+            } catch (e) { console.error("Error cargando votos"); }
         }
 
-        // 2. VINCULACIÓN CON ADMOB (AppCreator24)
-        function iniciarVoto(id, nombre) {
-            // Llamar al anuncio bonificado de 1 TriaxKoin
+        // 2. DISPARAR ANUNCIO DE ADMOB (AppCreator24)
+        function votar(id, nombre) {
             if (typeof parent.showRewardedAd !== "undefined") {
-                parent.showRewardedAd(AD_ID);
-                
-                // Esta función la ejecuta AppCreator24 cuando se recibe la recompensa (Token)
+                parent.showRewardedAd(CONFIG.adId);
+                // Solo si el anuncio se completa, se ejecuta el registro
                 window.onRewardedAdCompleted = function() {
-                    alert("¡Felicidades! Has ganado 1 TriaxKoin para " + nombre);
-                    // AQUÍ EN EL SIGUIENTE PASO CONECTAREMOS EL TOKEN DE GITHUB
-                    console.log("Token recibido para ID: " + id);
+                    registrarVoto(id, nombre);
                 };
             } else {
-                alert("Simulación: Anuncio no disponible fuera de la App Triax. Voto para: " + nombre);
+                // Simulación para pruebas en navegador
+                if(confirm("Simulación: ¿Ver anuncio para ganar 1 TriaxKoin para " + nombre + "?")) {
+                    registrarVoto(id, nombre);
+                }
+            }
+        }
+
+        // 3. GUARDAR VOTO EN GITHUB USANDO EL TOKEN
+        async function registrarVoto(id, nombre) {
+            try {
+                // Obtener el archivo actual y su SHA (identificador de versión)
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
+                    headers: { 'Authorization': `token ${CONFIG.token}` }
+                });
+                const fileData = await res.json();
+                let personajes = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+
+                // Sumar el voto al personaje correcto
+                personajes = personajes.map(p => p.id === id ? {...p, votos: p.votos + 1} : p);
+
+                // Subir el archivo actualizado a GitHub
+                const updateRes = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
+                    method: "PUT",
+                    headers: { 
+                        'Authorization': `token ${CONFIG.token}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({
+                        message: `Voto registrado para ${nombre} (TriaxKoin)`,
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify(personajes, null, 2)))),
+                        sha: fileData.sha
+                    })
+                });
+
+                if(updateRes.ok) {
+                    alert("¡Voto para " + nombre + " registrado con éxito!");
+                    cargarVotacion(); // Refrescar los números en pantalla
+                }
+            } catch (err) {
+                alert("Hubo un problema al conectar con el servidor de Triax.");
             }
         }
 
