@@ -3,97 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Votación Triax</title>
+    <title>La Mansión VIP - Votación</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-            background-color: #0d1117; 
-            color: #e6edf3; 
-            margin: 0; 
-            padding: 15px; 
-        }
-
-        /* Contenedor de Slots en 2 columnas */
-        .grid-votacion {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            max-width: 800px;
-            margin: auto;
-        }
-
-        /* Estilo de cada Cuadro/Slot */
-        .slot {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-
-        .slot:active {
-            transform: scale(0.98);
-        }
-
-        /* Foto del participante */
-        .slot img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 8px;
-            background-color: #000;
-            border: 1px solid #30363d;
-        }
-
-        .nombre {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin: 10px 0 5px;
-            color: #58a6ff;
-            height: 20px;
-            overflow: hidden;
-        }
-
-        /* El Contador solicitado */
-        .contador {
-            display: block;
-            font-size: 24px;
-            font-weight: 800;
-            color: #3fb950; /* Verde brillante */
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(63, 185, 80, 0.3);
-        }
-
-        /* Botón de acción */
-        .btn-votar {
-            background-color: #238636;
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 12px;
-        }
-
-        .btn-votar:hover {
-            background-color: #2ea043;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000; color: #fff; margin: 0; padding: 10px; }
+        .grid-votacion { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .tarjeta { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 8px; text-align: center; }
+        .tarjeta img { width: 100%; height: 120px; object-fit: cover; border-radius: 5px; background: #333; }
+        .nombre { display: block; font-size: 13px; margin: 5px 0; height: 32px; overflow: hidden; }
+        /* El contador que pediste resaltar */
+        .votos-num { display: block; font-size: 22px; color: #00ff00; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 5px #00ff0055; }
+        .btn-votar { background: #d32f2f; color: #fff; border: none; width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div class="grid-votacion" id="contenedor">
-        </div>
+    <div class="grid-votacion" id="contenedor"></div>
 
     <script>
         const CONFIG = {
-            // Token fragmentado para evitar bloqueo de GitHub
             token: ["ghp_", "bO4pJCLPCPNZUht90vXneD9brtjgDy0JqD5w"].join(""),
             owner: "Hechicero777",
             repo: "La-Mansi-n-VIP",
@@ -101,10 +28,76 @@
             adId: "ca-app-pub-7344656090124182/7924570169"
         };
 
-        async function actualizarPantalla() {
+        async function cargarVotacion() {
             try {
-                const t = new Date().getTime();
-                const r = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?t=${t}`, {
+                // Forzamos que no use caché para ver el contador real siempre
+                const respuesta = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}?t=${new Date().getTime()}`, {
+                    headers: { 'Authorization': `token ${CONFIG.token}` }
+                });
+                const data = await respuesta.json();
+                const personajes = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                
+                const contenedor = document.getElementById('contenedor');
+                contenedor.innerHTML = "";
+                
+                personajes.forEach(p => {
+                    contenedor.innerHTML += `
+                        <div class="tarjeta">
+                            <img src="https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/fotos/${p.id}.jpg" onerror="this.src='https://via.placeholder.com/150/333/fff?text=Triax+VIP'">
+                            <span class="nombre">${p.personaje}</span>
+                            <span class="votos-num" id="v-${p.id}">${p.votos}</span>
+                            <button class="btn-votar" onclick="iniciarVoto(${p.id}, '${p.personaje}')">VOTAR</button>
+                        </div>
+                    `;
+                });
+            } catch (e) { console.error("Error cargando votos"); }
+        }
+
+        function iniciarVoto(id, nombre) {
+            if (typeof parent.showRewardedAd !== "undefined") {
+                parent.showRewardedAd(CONFIG.adId);
+                window.onRewardedAdCompleted = function() {
+                    registrarVotoEnGithub(id, nombre);
+                };
+            } else {
+                // Simulación para tus pruebas
+                if(confirm("¿Ver anuncio para sumar 1 TriaxKoin a " + nombre + "?")) {
+                    registrarVotoEnGithub(id, nombre);
+                }
+            }
+        }
+
+        async function registrarVotoEnGithub(id, nombre) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
+                    headers: { 'Authorization': `token ${CONFIG.token}` }
+                });
+                const fileData = await res.json();
+                let personajes = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+
+                // Sumamos 1 al contador
+                personajes = personajes.map(p => p.id === id ? {...p, votos: p.votos + 1} : p);
+
+                // Guardamos en el JSON de GitHub
+                await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path}`, {
+                    method: "PUT",
+                    headers: { 'Authorization': `token ${CONFIG.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `Voto para ${nombre}`,
+                        content: btoa(unescape(encodeURIComponent(JSON.stringify(personajes, null, 2)))),
+                        sha: fileData.sha
+                    })
+                });
+
+                alert("¡Voto registrado!");
+                cargarVotacion(); // Recargar cuadros para ver el nuevo número
+            } catch (err) { alert("Error al guardar voto"); }
+        }
+
+        window.onload = cargarVotacion;
+    </script>
+</body>
+</html>
                     headers: { 'Authorization': `token ${CONFIG.token}` }
                 });
                 
