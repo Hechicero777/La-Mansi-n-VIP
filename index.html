@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Votación Triax</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
+        
+        /* Cuadrícula de 2 columnas como en tu captura */
+        .grid-votacion {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .tarjeta-participante {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .tarjeta-participante img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #eee;
+        }
+
+        .nombre {
+            display: block;
+            margin: 8px 0 2px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .contador {
+            display: block;
+            font-size: 18px;
+            color: #d32f2f; /* Color llamativo para el voto */
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .btn-votar {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 0;
+            width: 100%;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-votar:active {
+            transform: scale(0.95);
+            background-color: #b71c1c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="grid-votacion" id="grid">
+        </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const idAnuncio = "ca-app-pub-7344656090124182/7924570169";
+
+        // Generamos exactamente 16 espacios
+        for (let i = 1; i <= 16; i++) {
+            grid.innerHTML += `
+                <div class="tarjeta-participante">
+                    <img src="https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/fotos/${i}.jpg" alt="Participante ${i}">
+                    <span class="nombre">Participante ${i}</span>
+                    <span class="contador" id="votos-${i}">0</span>
+                    <button class="btn-votar" onclick="solicitarVoto(${i})">Votar</button>
+                </div>
+            `;
+        }
+
+        function solicitarVoto(id) {
+            console.log("Iniciando video para el bloque: " + idAnuncio);
+            alert("Para votar por el participante " + id + " debes ver el video publicitario.");
+            // Aquí irá la conexión con el SDK de AdMob y tu token de GitHub
+        }
+    </script>
+</body>
+</html>
