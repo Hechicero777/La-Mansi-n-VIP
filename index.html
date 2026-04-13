@@ -3,95 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Votación Triax</title>
+    <title>La Mansión VIP - Votación</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 10px; }
-        
-        /* Cuadrícula de 2 columnas como en tu captura */
-        .grid-votacion {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            max-width: 600px;
-            margin: auto;
-        }
-
-        .tarjeta-participante {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #ddd;
-        }
-
-        .tarjeta-participante img {
-            width: 100%;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 8px;
-            background-color: #eee;
-        }
-
-        .nombre {
-            display: block;
-            margin: 8px 0 2px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        .contador {
-            display: block;
-            font-size: 18px;
-            color: #d32f2f; /* Color llamativo para el voto */
-            font-weight: 900;
-            margin-bottom: 8px;
-        }
-
-        .btn-votar {
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 0;
-            width: 100%;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
-        .btn-votar:active {
-            transform: scale(0.95);
-            background-color: #b71c1c;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #000; color: #fff; margin: 0; padding: 10px; }
+        .grid-votacion { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .tarjeta { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 8px; text-align: center; }
+        .tarjeta img { width: 100%; height: 120px; object-fit: cover; border-radius: 5px; background: #333; }
+        .nombre { display: block; font-size: 13px; margin: 5px 0; height: 32px; overflow: hidden; }
+        .votos-num { display: block; font-size: 18px; color: #00ff00; font-weight: bold; margin-bottom: 5px; }
+        .btn-votar { background: #d32f2f; color: #fff; border: none; width: 100%; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="grid-votacion" id="grid">
-        </div>
+    <div class="grid-votacion" id="contenedor"></div>
 
     <script>
-        const grid = document.getElementById('grid');
-        const idAnuncio = "ca-app-pub-7344656090124182/7924570169";
+        const jsonUrl = "https://raw.githubusercontent.com/Hechicero777/La-Mansi-n-VIP/main/votos.json";
 
-        // Generamos exactamente 16 espacios
-        for (let i = 1; i <= 16; i++) {
-            grid.innerHTML += `
-                <div class="tarjeta-participante">
-                    <img src="https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/fotos/${i}.jpg" alt="Participante ${i}">
-                    <span class="nombre">Participante ${i}</span>
-                    <span class="contador" id="votos-${i}">0</span>
-                    <button class="btn-votar" onclick="solicitarVoto(${i})">Votar</button>
-                </div>
-            `;
+        async function cargarVotacion() {
+            try {
+                const respuesta = await fetch(jsonUrl);
+                const personajes = await respuesta.json();
+                const contenedor = document.getElementById('contenedor');
+                
+                contenedor.innerHTML = ""; // Limpiar
+                
+                personajes.forEach(p => {
+                    contenedor.innerHTML += `
+                        <div class="tarjeta">
+                            <img src="https://raw.githubusercontent.com/Hechicero777/La-Mansi-n-VIP/main/fotos/${p.id}.jpg" alt="${p.personaje}">
+                            <span class="nombre">${p.personaje}</span>
+                            <span class="votos-num" id="v-id-${p.id}">${p.votos}</span>
+                            <button class="btn-votar" onclick="iniciarVoto(${p.id})">VOTAR</button>
+                        </div>
+                    `;
+                });
+            } catch (e) { console.error("Error cargando votos"); }
         }
 
-        function solicitarVoto(id) {
-            console.log("Iniciando video para el bloque: " + idAnuncio);
-            alert("Para votar por el participante " + id + " debes ver el video publicitario.");
-            // Aquí irá la conexión con el SDK de AdMob y tu token de GitHub
+        function iniciarVoto(id) {
+            // Aquí se activa el ID: ca-app-pub-7344656090124182/7924570169
+            alert("Viendo anuncio para votar por el ID: " + id);
         }
+
+        window.onload = cargarVotacion;
     </script>
 </body>
 </html>
